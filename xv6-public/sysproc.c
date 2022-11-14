@@ -89,3 +89,16 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int 
+sys_clone(void)
+{
+  // needs similar logic to fork
+  return 0;
+}
+
+int 
+sys_join(void){
+  // to call wait for threads, free userstack
+  return 0;
+}

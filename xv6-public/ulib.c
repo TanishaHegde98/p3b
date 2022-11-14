@@ -3,6 +3,7 @@
 #include "fcntl.h"
 #include "user.h"
 #include "x86.h"
+#include "lock.h"
 
 char*
 strcpy(char *s, const char *t)
@@ -103,4 +104,33 @@ memmove(void *vdst, const void *vsrc, int n)
   while(n-- > 0)
     *dst++ = *src++;
   return vdst;
+}
+
+void 
+lock_init(struct lock_t *lock){
+  lock->flag=0;
+}
+
+int 
+thread_join(void){
+ //calls join() system call
+ return 0;
+}
+
+void 
+lock_acquire(struct lock_t *lock){
+  while (lock->flag == 1)
+  ;
+  lock->flag=1;
+}
+
+void 
+lock_release(struct lock_t *lock){
+  lock->flag=0;
+}
+
+int 
+thread_create(void (*start_routine)(void *, void *), void *arg1, void *arg2){
+  // calls systemcall clone()
+  return 0;
 }
