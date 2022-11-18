@@ -3,7 +3,8 @@
 #include "fcntl.h"
 #include "user.h"
 #include "x86.h"
-#include "lock.h"
+
+#define PGSIZE 4096
 
 char*
 strcpy(char *s, const char *t)
@@ -107,30 +108,38 @@ memmove(void *vdst, const void *vsrc, int n)
 }
 
 void 
-lock_init(struct lock_t *lock){
+lock_init(lock_t *lock){
   lock->flag=0;
 }
 
 int 
 thread_join(void){
  //calls join() system call
- return 0;
+ void *stack;
+ return join(&stack);
 }
 
 void 
-lock_acquire(struct lock_t *lock){
+lock_acquire(lock_t *lock){
   while (lock->flag == 1)
   ;
   lock->flag=1;
 }
 
 void 
-lock_release(struct lock_t *lock){
+lock_release(lock_t *lock){
   lock->flag=0;
 }
 
 int 
 thread_create(void (*start_routine)(void *, void *), void *arg1, void *arg2){
   // calls systemcall clone()
-  return 0;
+  int sz = PGSIZE;
+  void * stack = malloc(sz);
+  int pid = clone(start_routine,arg1,arg2,stack);
+  
+  //add arguements onto stack
+  //memmove(stack,arg2,sizeof(arg2));
+  //memmove(stack,arg1,sizeof(arg1));
+  return pid;
 }

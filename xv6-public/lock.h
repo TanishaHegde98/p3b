@@ -1,3 +1,3 @@
-struct lock_t{
+typedef struct lock{
     int flag;
-};
+}lock_t;

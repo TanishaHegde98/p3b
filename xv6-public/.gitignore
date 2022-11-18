@@ -12,3 +12,6 @@ initcode.out
 kernel
 mkfs
 vectors.S
+test_*
+tests-out/
+Makefile.test

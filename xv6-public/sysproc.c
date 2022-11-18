@@ -94,11 +94,35 @@ int
 sys_clone(void)
 {
   // needs similar logic to fork
-  return 0;
+  //fetch 1st arg
+  int fcn = 0;
+  argint(0,&fcn);
+  //fetch 2nd arg
+  int arg1 = 0;
+  argint(1,&arg1);
+  //fetch 3rd arg
+  int arg2 = 0;
+  argint(2,&arg2);
+
+  //fetch 4th arg
+  int stack = 0;
+  argint(3,&stack);
+  if(fcn < 0 || arg1 < 0 || arg2 < 0 || stack< 0 )
+    return -1;
+  if( ((stack) % PGSIZE) != 0){    
+    return -1;
+  }
+  int addr=myproc()->sz;
+  if(addr - (uint)stack == PGSIZE/2)
+    return -1;
+  return clone((void *)fcn,(void *)arg1,(void *)arg2,(void *)stack);
 }
 
 int 
 sys_join(void){
-  // to call wait for threads, free userstack
-  return 0;
+  void **stack = 0;
+  int tstack;
+  argint(0,&tstack);
+  stack = (void **)tstack;
+  return join(stack);
 }
