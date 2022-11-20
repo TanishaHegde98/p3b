@@ -90,6 +90,8 @@ found:
   p->pid = nextpid++;
 
   release(&ptable.lock);
+  
+  // initlock(&p->lck, p->name);
 
   // Allocate kernel stack.
   if((p->kstack = kalloc()) == 0){
@@ -159,18 +161,31 @@ int
 growproc(int n)
 {
   uint sz;
+  struct proc *p;
   struct proc *curproc = myproc();
-
+  // cprintf("\ngrowproc n=%d",n);
+  // acquire(&curproc->lck);
   sz = curproc->sz;
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
+      // release(&curproc->lck);
       return -1;
   } else if(n < 0){
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
-      return -1;
+      {
+        // release(&curproc->lck);
+        return -1;
+      }
   }
-  curproc->sz = sz;
+  curproc->sz=sz;
+
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pgdir == curproc->pgdir || p->parent ==curproc){
+      p->sz = sz; 
+    }
+  } 
   switchuvm(curproc);
+  // release(&curproc->lck);
   return 0;
 }
 
@@ -436,8 +451,10 @@ sleep(void *chan, struct spinlock *lk)
     release(lk);
   }
   // Go to sleep.
+  // acquire(&p->lck);
   p->chan = chan;
   p->state = SLEEPING;
+  // release(&p->lck);
 
   sched();
 
@@ -549,10 +566,6 @@ clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
-  np->tf->eip= (uint)fcn;
-  // Clear %eax so that fork returns 0 in the child.
-  np->tf->eax = 0;
-
   //Fill the stack
   void * tret, *targ1, *targ2;
   tret = stack + PGSIZE - 3*sizeof(void *);  
@@ -563,10 +576,16 @@ clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   *(uint *)targ1 = (uint )arg1;
   *(uint *)targ2 = (uint )arg2;
   //cprintf("%d",targ2);
-  np->kstack = (char *)stack;
   np->tf->esp = (uint) stack;
+  np->threadstack = stack;
+
   np->tf->esp += PGSIZE - 3*sizeof(void *); 
   np->tf->ebp = np->tf->esp;
+    np->tf->eip= (uint)fcn;
+  np->tf->eax = 0;
+
+  // Clear %eax so that fork returns 0 in the child.
+
   for(i = 0; i < NOFILE; i++)
     if(curproc->ofile[i]){
       np->ofile[i] = filedup(curproc->ofile[i]);
@@ -603,13 +622,16 @@ join(void **stack){
         // Found one.
         //cprintf("found kid");
         pid = p->pid;
-        *stack = (void *)p->kstack;
+        kfree(p->kstack);
         p->kstack = 0;
         p->pid = 0;
         p->parent = 0;
         p->name[0] = 0;
         p->killed = 0;
         p->state = UNUSED;
+        // stack=(void *)p->threadstack;
+        *stack = p->threadstack;
+        p->threadstack=0;
         release(&ptable.lock);
         return pid;
       }
@@ -624,4 +646,5 @@ join(void **stack){
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
+  return 0;
 }
