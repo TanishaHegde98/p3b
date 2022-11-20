@@ -50,6 +50,7 @@ sys_sbrk(void)
 
   if(argint(0, &n) < 0)
     return -1;
+  // cprintf("n=%d",n);  
   addr = myproc()->sz;
   if(growproc(n) < 0)
     return -1;
@@ -96,24 +97,33 @@ sys_clone(void)
   // needs similar logic to fork
   //fetch 1st arg
   int fcn = 0;
-  argint(0,&fcn);
+  if(argint(0,&fcn) < 0)
+    return -1;
+  // argint(0,&fcn);
   //fetch 2nd arg
   int arg1 = 0;
-  argint(1,&arg1);
+  if(argint(1,&arg1) < 0)
+    return -1;
+  // argint(1,&arg1);
   //fetch 3rd arg
   int arg2 = 0;
-  argint(2,&arg2);
+  if(argint(2,&arg2) < 0)
+    return -1;
+  // argint(2,&arg2);
 
   //fetch 4th arg
   int stack = 0;
-  argint(3,&stack);
+  if(argint(3,&stack) < 0)
+    return -1;
+  // // argint(3,&stack);
   if(fcn < 0 || arg1 < 0 || arg2 < 0 || stack< 0 )
     return -1;
-  if( ((stack) % PGSIZE) != 0){    
+  if( ((stack) % PGSIZE) !=0){    
     return -1;
   }
   int addr=myproc()->sz;
-  if(addr - (uint)stack == PGSIZE/2)
+  // cprintf("fcn,arg1,arg2,stack,sz: %d, %d, %d, %d, %d",fcn,arg1,arg2,stack,addr);
+  if(addr - (uint)stack == PGSIZE/2|| stack>addr)
     return -1;
   return clone((void *)fcn,(void *)arg1,(void *)arg2,(void *)stack);
 }
@@ -123,6 +133,12 @@ sys_join(void){
   void **stack = 0;
   int tstack;
   argint(0,&tstack);
+  // int st=argint(0,&tstack);
+  // uint sz= myproc()->sz;
+  // cprintf("\nsz=%d",sz);
+  if(tstack< 0)
+    return -1;
+  // cprintf("tstack:%d",tstack);
   stack = (void **)tstack;
   return join(stack);
 }
