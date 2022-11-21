@@ -118,7 +118,7 @@ sys_clone(void)
   // // argint(3,&stack);
   if(fcn < 0 || arg1 < 0 || arg2 < 0 || stack< 0 )
     return -1;
-  if( ((stack) % PGSIZE) !=0){    
+  if( ((stack) % (2*sizeof(uint))) !=0){    
     return -1;
   }
   int addr=myproc()->sz;
