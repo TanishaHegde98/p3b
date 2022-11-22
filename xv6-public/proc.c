@@ -161,31 +161,33 @@ int
 growproc(int n)
 {
   uint sz;
-  struct proc *p;
+  //struct proc *p;
   struct proc *curproc = myproc();
   // cprintf("\ngrowproc n=%d",n);
-  // acquire(&curproc->lck);
+  acquire(&ptable.lock);
   sz = curproc->sz;
   if(n > 0){
-    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0)
-      // release(&curproc->lck);
+    if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0){
+      release(&ptable.lock);
       return -1;
+    }
   } else if(n < 0){
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
       {
-        // release(&curproc->lck);
+        release(&ptable.lock);
         return -1;
       }
   }
+  for(struct proc *p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    if(p->pgdir == curproc->pgdir){
+        //cprintf("Updating size of %s from %d to %d\n", p->name, p->sz, sz);
+        p->sz = sz; 
+      }
+  }
+  // cprintf("outside for\n");
   curproc->sz=sz;
-
-  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-    if(p->pgdir == curproc->pgdir || p->parent ==curproc){
-      p->sz = sz; 
-    }
-  } 
+  release(&ptable.lock);
   switchuvm(curproc);
-  // release(&curproc->lck);
   return 0;
 }
 
@@ -270,12 +272,17 @@ exit(void)
   // Pass abandoned children to init.
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->parent == curproc){
-      p->parent = initproc;
-      if(p->state == ZOMBIE)
-        wakeup1(initproc);
+      if(p->pgdir == curproc->pgdir){
+        p->parent=0;
+        p->state = ZOMBIE;
+      }
+      else{
+          p->parent = initproc;
+          if(p->state == ZOMBIE)
+          wakeup1(initproc);
+      }
     }
   }
-
   // Jump into the scheduler, never to return.
   curproc->state = ZOMBIE;
   sched();
@@ -296,7 +303,7 @@ wait(void)
     // Scan through table looking for exited children.
     havekids = 0;
     for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->parent != curproc || (p->pgdir == curproc->pgdir))
+      if(p->parent != curproc ||(p->pgdir == curproc->pgdir))
         continue;
       havekids = 1;
       if(p->state == ZOMBIE){
@@ -502,6 +509,13 @@ kill(int pid)
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
     if(p->pid == pid){
       p->killed = 1;
+      for(struct proc* pc = ptable.proc; pc < &ptable.proc[NPROC]; pc++){
+         if ((pc->parent == p) && (pc->pgdir == p->pgdir)){
+            pc->killed = 1;
+            if (pc->state == SLEEPING)
+               pc->state = RUNNABLE;
+         }
+      }
       // Wake process from sleep if necessary.
       if(p->state == SLEEPING)
         p->state = RUNNABLE;

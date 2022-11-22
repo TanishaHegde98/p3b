@@ -132,11 +132,11 @@ int
 sys_join(void){
   void **stack = 0;
   int tstack;
-  argint(0,&tstack);
-  // int st=argint(0,&tstack);
-  // uint sz= myproc()->sz;
-  // cprintf("\nsz=%d",sz);
-  // cprintf("tstack:%d",tstack);
+  if(argint(0,&tstack)<0)
+    return -1;
+  uint sz= myproc()->sz;
+  if((sz-(uint)tstack) < sizeof(void**))
+	  return -1;
   stack = (void **)tstack;
   return join(stack);
 }
