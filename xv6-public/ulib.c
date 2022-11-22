@@ -128,14 +128,13 @@ thread_join(void){
 
 void 
 lock_acquire(lock_t *lock){
-  while (lock->flag == 1)
-  ;
-  lock->flag=1;
+while(xchg(&lock->flag, 1) != 0)
+	    ;
 }
 
 void 
 lock_release(lock_t *lock){
-  lock->flag=0;
+  xchg(&lock->flag, 0);
 }
 
 int 

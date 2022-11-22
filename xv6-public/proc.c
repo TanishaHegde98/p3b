@@ -163,18 +163,20 @@ growproc(int n)
   uint sz;
   //struct proc *p;
   struct proc *curproc = myproc();
+  struct spinlock lk;
+  initlock(&lk, "lock");
   // cprintf("\ngrowproc n=%d",n);
-  acquire(&ptable.lock);
+  acquire(&lk);
   sz = curproc->sz;
   if(n > 0){
     if((sz = allocuvm(curproc->pgdir, sz, sz + n)) == 0){
-      release(&ptable.lock);
+      release(&lk);
       return -1;
     }
   } else if(n < 0){
     if((sz = deallocuvm(curproc->pgdir, sz, sz + n)) == 0)
       {
-        release(&ptable.lock);
+        release(&lk);
         return -1;
       }
   }
@@ -186,7 +188,7 @@ growproc(int n)
   }
   // cprintf("outside for\n");
   curproc->sz=sz;
-  release(&ptable.lock);
+  release(&lk);
   switchuvm(curproc);
   return 0;
 }
@@ -569,7 +571,9 @@ clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
   int i, pid;
   struct proc *np;
   struct proc *curproc = myproc();
-  
+  struct spinlock lk;
+  initlock(&lk, "mylock");
+
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
@@ -610,11 +614,11 @@ clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
 
   pid = np->pid;
 
-  acquire(&ptable.lock);
+  acquire(&lk);
 
   np->state = RUNNABLE;
 
-  release(&ptable.lock);
+  release(&lk);
   return pid;
 }
 
