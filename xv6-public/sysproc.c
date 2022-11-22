@@ -136,8 +136,6 @@ sys_join(void){
   // int st=argint(0,&tstack);
   // uint sz= myproc()->sz;
   // cprintf("\nsz=%d",sz);
-  if(tstack< 0 || sz-tstack < sizeof(uint))
-    return -1;
   // cprintf("tstack:%d",tstack);
   stack = (void **)tstack;
   return join(stack);
